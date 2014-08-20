@@ -40,11 +40,16 @@ program compute_pressure_test
    real(c_double), dimension(:), allocatable :: x,y,z
    real(c_double) :: dx, dy
    logical :: file_exist
+   character :: C_pos = 'sss'
 
    ! Read in filepath and t index
    call getarg(1,filepath)
-   call getarg(2,targ)
-   read(targ,*), tind
+   call getarg(2,targ,status=status)
+   if (status == -1) then
+      print *, 'Error: No targ given. Stop.'
+      stop
+   end if
+   read(targ,*), tind 
 
    ! Check that file exists
    inquire(file=trim(filepath),exist=file_exist)
@@ -98,7 +103,7 @@ program compute_pressure_test
         s_eh, s_omega3, s_dh3, s_rhobar, s_dyn, beta, pdyn )
 
   ! Check pdyn calculation
-  call laplacian3d(-pdyn,dx,dy,z,'i','n',s_dyn_alt)
+  call laplacian3d(-pdyn,dx,dy,z,'s','d',s_dyn_alt)
 
    !=================!
    ! Write output    !
@@ -112,12 +117,12 @@ program compute_pressure_test
 
    ! Write s_pdyn to nc file
    call write_netCDF3(ncid, (/ xdimid, ydimid, zdimid/), 's_dyn', &
-        'kg/(m^3 s^2)', 'Source for Dynamic Pressure (ssi)',s_dyn)
+        'kg/(m^3 s^2)', 'Source for Dynamic Pressure ('//C_pos//')',s_dyn)
 
    ! Write s_pdyn_alt to nc file
    call write_netCDF3(ncid, (/ xdimid, ydimid, zdimid/), 's_dyn_alt', &
         'kg/(m^3 s^2)', & 
-        '(recomputed) source for Dynamic Pressure (ssi)',s_dyn_alt)
+        '(recomputed) source for Dynamic Pressure ('//C_pos//')',s_dyn_alt)
 
    ! Write pdyn_source fields to nc file
    call write_netCDF3(ncid, (/ xdimid, ydimid, zdimid/), 's_eh', &
@@ -139,7 +144,7 @@ program compute_pressure_test
    ! Write pdyn to nc file
    tmp=pdyn(:,:,1:nz)
    call write_netCDF3(ncid, (/ xdimid, ydimid, zdimid/), 'pdyn', &
-        'kg/(m s^2)', 'Dynamic Pressure (ssi)',tmp)
+        'kg/(m s^2)', 'Dynamic Pressure ('//C_pos//')',tmp)
 
    call handle_err(nf90_close(ncid = ncid))      
 

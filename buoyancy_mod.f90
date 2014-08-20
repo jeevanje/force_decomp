@@ -37,7 +37,7 @@ module buoyancy_mod
     ! Private
     integer :: nx, ny, nz, i, j, k
     real :: dx, dy
-    real, dimension(:), allocatable :: rhobar, rhobar_i, tmp1d
+    real, dimension(:), allocatable :: rhobar, tmp1d
     real, dimension(:,:), allocatable :: A
     real, dimension(:,:,:), allocatable :: deltarho, tmp, tmpu, tmpv,tmpw
     real, dimension(:,:,:,:,:), allocatable :: D ! deformation tensor
@@ -54,7 +54,7 @@ module buoyancy_mod
     nz = size(z,dim=1)
 
     ! Allocate arrays
-    allocate( rhobar(nz), rhobar_i(nz), deltarho(nx,ny,nz),  &
+    allocate( rhobar(nz),  deltarho(nx,ny,nz),  &
          beta(nx,ny,nz), pdyn(nx,ny,nz), &
          s_beta(nx,ny,nz), s_dyn(nx,ny,nz), &
          s_eh(nx,ny,nz), s_omega3(nx,ny,nz), &
@@ -69,45 +69,47 @@ module buoyancy_mod
     
     write(*,*) 'beta, s_beta computed'
 
-    ! Compute rhobar, rhobar_i
-    tmp = s2i(3,z,rho,'fs') ! move rho to ssi. Free-slip gives interp to z=0.
+    ! Compute rhobar
     do k=1,nz
        rhobar(k) = 1/(real(nx)*real(ny))*sum(rho(:,:,k))
-       rhobar_i(k) = 1/(real(nx)*real(ny))*sum(tmp(:,:,k))
     end do
     
-    ! Compute deformation tensor D on ssi positions
-    D(1,1,:,:,:) =  partialder_i2s(1,x,s2i(3,z,u,'fs'))     ! ppx u on ssi
-    tmpv = s2i(1,x,i2s(2,y,s2i(3,z,v,'fs')))                ! Move v to isi 
-    D(1,2,:,:,:) = partialder_i2s(1,x,tmpv)                 ! ppx v on ssi
-    D(1,3,:,:,:) = partialder_i2s(1,x,s2i(1,x,w))           ! ppx w on ssi
-    tmpu = s2i(2,y,i2s(1,x,s2i(3,z,u,'fs')))                ! Move u to sii
-    D(2,1,:,:,:) = partialder_i2s(2,y,tmpu)                 ! ppy u on ssi
-    D(2,2,:,:,:) = partialder_i2s(2,y,s2i(3,z,v,'fs'))      ! ppv v on ssi
-    D(2,3,:,:,:) = partialder_i2s(2,y,s2i(2,y,w))           ! ppy w on ssi
-    D(3,1,:,:,:) = partialder_s2i(3,z,i2s(1,x,u),'fs')      ! ppz u on ssi
-    D(3,2,:,:,:) = partialder_s2i(3,z,i2s(2,y,v),'fs')      ! ppz v on ssi
-    D(3,3,:,:,:) = partialder_s2i(3,z,i2s(3,z,w,'ns'),'ns') ! ppz w on ssi
+    ! Compute deformation tensor D on sss positions
+    D(1,1,:,:,:) =  partialder_i2s(1,x,u)                   ! ppx u on sss
+    tmpv         = s2i(1,x,i2s(2,y,v))                      ! Move v to iss 
+    D(1,2,:,:,:) = partialder_i2s(1,x,tmpv)                 ! ppx v on sss
+    tmpw         = s2i(1,x,i2s(3,z,w,'ns'))                 ! Move w to iss
+    D(1,3,:,:,:) = partialder_i2s(1,x,tmpw)                 ! ppx w on sss
+    tmpu         = s2i(2,y,i2s(1,x,u))                      ! Move u to sis
+    D(2,1,:,:,:) = partialder_i2s(2,y,tmpu)                 ! ppy u on sss
+    D(2,2,:,:,:) = partialder_i2s(2,y,v)                    ! ppv v on sss
+    tmpw         = s2i(2,y,i2s(3,z,w,'ns'))                 ! Move w to sis
+    D(2,3,:,:,:) = partialder_i2s(2,y,tmpw)                 ! ppy w on sss
+    tmpu         = i2s(1,x,s2i(3,z,u,'fs'))                 ! Move u to ssi
+    D(3,1,:,:,:) = partialder_s2i(3,z,tmpu,'fs')            ! ppz u on sss
+    tmpv         = i2s(2,y,s2i(3,z,v,'fs'))                 ! Move v to ssi
+    D(3,2,:,:,:) = partialder_s2i(3,z,tmpv,'fs')            ! ppz v on sss
+    D(3,3,:,:,:) = partialder_i2s(3,z,w,'ns')               ! ppz w on sss
 
     ! Compute components of sdyn (ssi)
-    call ddz2matrix(z,A,'i','fs')  ! for s_pdyn_rho calc
-    tmp1d=matmul(A,log(rhobar_i))
-    tmp1d(1) = 2*tmp1d(2)-tmp1d(3) ! linearly interpolate to z=0 
+    call ddz2matrix(z,A,'s','fs')  ! for s_pdyn_rho calc
+    tmp1d=matmul(A,log(rhobar))
+    tmp1d(1) = 2*tmp1d(2)-tmp1d(3) ! linearly interpolate to bottom level
     do k=1,nz
-       s_eh(:,:,k)     = rhobar_i(k)*( D(1,1,:,:,k)**2 &
+       s_eh(:,:,k)     = rhobar(k)*( D(1,1,:,:,k)**2 &
                              + 1./2.*( D(1,2,:,:,k)+D(2,1,:,:,k) )**2 &
                              + D(2,2,:,:,k)**2 + D(3,3,:,:,k)**2 )
-       s_omega3(:,:,k) = -1/2.*rhobar_i(k)*( D(1,2,:,:,k)-D(2,1,:,:,k) )**2
-       s_dh3(:,:,k)    = 2.*rhobar_i(k)*( D(1,3,:,:,k)*D(3,1,:,:,k) &
+       s_omega3(:,:,k) = -1/2.*rhobar(k)*( D(1,2,:,:,k)-D(2,1,:,:,k) )**2
+       s_dh3(:,:,k)    = 2.*rhobar(k)*( D(1,3,:,:,k)*D(3,1,:,:,k) &
                              + D(2,3,:,:,k)*D(3,2,:,:,k) )
-       s_rhobar(:,:,k) = -rhobar_i(k)*tmp1d(k)*w(:,:,k)**2
+       s_rhobar(:,:,k) = -rhobar(k)*tmp1d(k)*w(:,:,k)**2
     end do
    
     ! Sum to get pdyn
     s_dyn = s_eh + s_omega3 + s_dh3 +s_rhobar
     
     ! Compute pdyn
-    call solve_poisson(s_dyn,x,y,z,pdyn,'i','n') ! ssi, Neumann
+    call solve_poisson(s_dyn,x,y,z,pdyn,'s','d') ! sss, Dirichlet
 
     write(*,*) 'pdyn, pdyn_source computed'
           

@@ -60,7 +60,7 @@ module calculus_mod
     integer :: p                                          ! Coordinate rank
     real, dimension(:), allocatable, intent(in) :: coord  ! Coordinate vector   
     real, dimension(:,:,:), allocatable, intent(in) :: f  ! 3d  field
-    character,  optional :: bc ! ns (no-slip) or fs (free-slip)
+    character*(*),  optional :: bc ! ns (no-slip) or fs (free-slip)
 
     ! Private
     real, dimension(:,:,:), allocatable :: fhalo ! halo field
@@ -113,6 +113,9 @@ module calculus_mod
           fhalo(1:nx,1:ny,nz+1) = 0
        else if (bc .eq. 'fs') then
           fhalo(1:nx,1:ny,nz+1) = 2.*fhalo(1:nx,1:ny,nz)-fhalo(1:nx,1:ny,nz-1)
+       else
+          print *, 'Error in i2s: z-reposition requires BC "ns" or "fs". Stop. '
+          stop          
        end if
        ! Compute i2s
        do k=1,nz
@@ -194,6 +197,9 @@ module calculus_mod
           fhalo(1:nx,1:ny,0) = -f(1:nx,1:ny,1)
        else if (bc .eq. 'fs') then
           fhalo(1:nx,1:ny,0) = 2.*f(1:nx,1:ny,1)-f(1:nx,1:ny,2)          
+       else
+          print *, 'Error in s2i: z-reposition requires BC "ns" or "fs". Stop. '
+          stop          
        end if
 
        ! Compute s2i
@@ -225,7 +231,7 @@ module calculus_mod
     integer :: p                                          ! Coordinate rank
     real, dimension(:), allocatable, intent(in) :: coord  ! Coordinate vector   
     real, dimension(:,:,:), allocatable, intent(in) :: f  ! 3d field
-    character, intent(in), optional :: bc ! ns (no-slip) or fs (free-slip)
+    character*(*), intent(in), optional :: bc ! ns (no-slip) or fs (free-slip)
 
     ! Private
     real, dimension(:,:,:), allocatable :: fhalo ! halo field
@@ -295,6 +301,10 @@ module calculus_mod
        else if (bc .eq. 'fs') then
           fhalo(1:nx,1:ny,0) = 2.*f(:,:,1)-f(:,:,2)
           fhalo(1:nx,1:ny,nz+1) = 2.*f(:,:,nz)-f(:,:,nz-1)
+       else 
+          print *, 'Error in partialder_s2i: &
+                    z-derivative requires BC "ns" or "fs". Stop. '
+          stop
        end if
           
        ! Compute partialder_s2i
@@ -331,7 +341,7 @@ module calculus_mod
     integer :: p                                          ! Coordinate rank
     real, dimension(:), allocatable, intent(in) :: coord  ! Coordinate vector   
     real, dimension(:,:,:), allocatable, intent(in) :: f  ! 3d field
-    character, intent(in), optional :: bc ! ns (no-slip) or fs (free-slip)
+    character*(*), intent(in), optional :: bc ! ns (no-slip) or fs (free-slip)
 
     ! Private
     real, dimension(:,:,:), allocatable :: fhalo ! halo field
@@ -399,6 +409,10 @@ module calculus_mod
           fhalo(1:nx,1:ny,nz+1) = 0   
        else if (bc .eq. 'fs') then
           fhalo(1:nx,1:ny,nz+1) = 2.*f(:,:,nz)-f(:,:,nz-1)
+       else
+          print *, 'Error in partialder_i2s: &
+                  z-derivative requires BC "ns" or "fs". Stop. '
+          stop
        end if
           
        ! Compute partialder_i2s

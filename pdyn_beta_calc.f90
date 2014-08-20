@@ -39,6 +39,7 @@ program pdyn_beta_calc
    real(c_double), dimension(:), allocatable :: x,y,z, time
    real(c_double) :: dx, dy
    logical :: file_exist
+   character(3) :: C_pos='sss'   ! ssi or sss
 
    ! Read in filepath and t index
    call getarg(1,filepath)
@@ -109,23 +110,23 @@ program pdyn_beta_calc
    ! Add attributes
    call handle_err(nf90_put_att(ncid, s_betaid, 'units', 'kg/(m^4 s^2)') ) 
    call handle_err(nf90_put_att(ncid, s_betaid, &
-        'long_name', 'Source of Effective Buoyancy (sss)'))
+        'long_name', 'Source of Effective Buoyancy ('//C_pos//')'))
 
    call handle_err(nf90_put_att(ncid, s_dynid, 'units', 'kg/(m^3 s^2)'))
    call handle_err(nf90_put_att(ncid, s_dynid, &
-        'long_name',  'Source for Dynamic Pressure (ssi)' ) )
+        'long_name',  'Source for Dynamic Pressure ('//C_pos//')' ) )
 
    call handle_err(nf90_put_att(ncid, betaid, 'units', 'kg/(m^2 s^2)') )
    call handle_err(nf90_put_att(ncid, betaid, &
-        'long_name',  'Effective Buoyancy (sss)') )
+        'long_name',  'Effective Buoyancy ('//C_pos//')') )
 
    call handle_err(nf90_put_att(ncid, pdynid, 'units','kg/(m s^2)') )
    call handle_err(nf90_put_att(ncid, pdynid, & 
-        'long_name',  'Dynamic Pressure (ssi)'))
+        'long_name',  'Dynamic Pressure ('//C_pos//')'))
 
    call handle_err(nf90_put_att(ncid, Fdynid, 'units', 'kg/(m^2 s^2)') )
    call handle_err(nf90_put_att(ncid, Fdynid, &
-        'long_name',  'Dynamic Pressure Force (sss)' ))
+        'long_name',  'Dynamic Pressure Force (ssi)' ))
 
    call handle_err(nf90_enddef(ncid = ncid)) ! End define mode
 
@@ -151,7 +152,7 @@ program pdyn_beta_calc
       ! Compute beta, pdyn, Fdyn 
       call compute_pressure(x,y,z,rho3d,u3d,v3d,w3d,s_beta3d, &
             s_eh, s_omega3, s_dh3, s_rhobar, s_dyn3d, beta3d, pdyn3d )
-      Fdyn3d  = - partialder_i2s(3,z,pdyn3d,'n')
+      Fdyn3d  = - partialder_s2i(3,z,pdyn3d,'ns')
 
       ! Write output
       call handle_err(nf90_put_var(ncid,s_betaid,s_beta3d, &
