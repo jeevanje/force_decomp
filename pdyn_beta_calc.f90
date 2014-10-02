@@ -33,7 +33,7 @@ program pdyn_beta_calc
    integer, dimension(4) :: dimids
    integer :: xdimid, ydimid, zdimid, tdimid,  ncid, status
    real(c_double), dimension(:,:,:), allocatable :: u3d,v3d,w3d, rho3d, &
-        s_beta3d , s_eh, s_omega3, s_dh3, s_rhobar, s_dyn3d, beta3d, pdyn3d, &
+        s_beta3d , s_divh, s_eh, s_omega3, s_dh3, s_rhobar, s_dyn3d, beta3d, pdyn3d, &
         Fdyn3d
    real, dimension(:,:,:,:), allocatable :: tmp
    real(c_double), dimension(:), allocatable :: x,y,z, time
@@ -151,7 +151,7 @@ program pdyn_beta_calc
 
       ! Compute beta, pdyn, Fdyn 
       call compute_pressure(x,y,z,rho3d,u3d,v3d,w3d,s_beta3d, &
-            s_eh, s_omega3, s_dh3, s_rhobar, s_dyn3d, beta3d, pdyn3d )
+            s_divh, s_eh, s_omega3, s_dh3, s_rhobar, s_dyn3d, beta3d, pdyn3d )
       Fdyn3d  = - partialder_s2i(3,z,pdyn3d,'ns')
 
       ! Write output

@@ -34,7 +34,7 @@ program compute_pressure_test
    integer :: xdimid, ydimid, zdimid, tdimid,  ncid, status
    real(c_double), dimension(:,:,:), allocatable :: u,v,w, rho, tmp 
    real(c_double), dimension(:,:,:), allocatable :: s_beta, &
-       s_eh, s_omega3, s_dh3, s_rhobar, s_dyn, beta, pdyn, & 
+        s_divh, s_eh, s_omega3, s_dh3, s_rhobar, s_dyn, beta, pdyn, Fdyn, & 
        s_dyn_alt
    real(c_double), dimension(:,:,:,:), allocatable :: u4d, v4d, w4d, rho4d
    real(c_double), dimension(:), allocatable :: x,y,z
@@ -78,7 +78,8 @@ program compute_pressure_test
    allocate(rho4d(nx,ny,nz,nt), u4d(nx,ny,nz,nt), &
         v4d(nx,ny,nz,nt), w4d(nx,ny,nz,nt), &
         rho(nx,ny,nz), u(nx,ny,nz), v(nx,ny,nz), w(nx,ny,nz), &
-        x(nx), y(ny), z(nz), tmp(nx,ny,nz), s_dyn_alt(nx,ny,nz) )
+        x(nx), y(ny), z(nz), tmp(nx,ny,nz), s_dyn_alt(nx,ny,nz), &
+        Fdyn(nx,ny,nz) )
 
    print *, 'Arrays allocated'
 
@@ -100,10 +101,13 @@ program compute_pressure_test
 
    ! compute beta, pdyn
   call compute_pressure(x,y,z,rho,u,v,w,s_beta, & 
-        s_eh, s_omega3, s_dh3, s_rhobar, s_dyn, beta, pdyn )
+        s_divh, s_eh, s_omega3, s_dh3, s_rhobar, s_dyn, beta, pdyn )
+
+  ! Compute Fdyn
+  Fdyn = -partialder_s2i(3,z,pdyn,'ns')
 
   ! Check pdyn calculation
-  call laplacian3d(-pdyn,dx,dy,z,'s','d',s_dyn_alt)
+  !call laplacian3d(-pdyn,dx,dy,z,'s','d',s_dyn_alt)
 
    !=================!
    ! Write output    !
@@ -115,16 +119,18 @@ program compute_pressure_test
    call write_netCDF3(ncid, (/ xdimid, ydimid, zdimid/), 's_beta', &
         'kg/(m^4 s^2)', 'Source of Effective Buoyancy (sss)',s_beta)
 
-   ! Write s_pdyn to nc file
+   ! Write s_dyn to nc file
    call write_netCDF3(ncid, (/ xdimid, ydimid, zdimid/), 's_dyn', &
         'kg/(m^3 s^2)', 'Source for Dynamic Pressure ('//C_pos//')',s_dyn)
 
-   ! Write s_pdyn_alt to nc file
-   call write_netCDF3(ncid, (/ xdimid, ydimid, zdimid/), 's_dyn_alt', &
-        'kg/(m^3 s^2)', & 
-        '(recomputed) source for Dynamic Pressure ('//C_pos//')',s_dyn_alt)
+   ! Write Fdyn to nc file
+   call write_netCDF3(ncid, (/ xdimid, ydimid, zdimid/), 'Fdyn', &
+       'kg/(m^2 s^2)', 'Dynamic Pressure Force (ssi)', Fdyn)
 
    ! Write pdyn_source fields to nc file
+   call write_netCDF3(ncid, (/ xdimid, ydimid, zdimid/), 's_divh', &
+        'kg/(m^3 s^2)', 'x-y convergence component of s_pdyn', s_divh )
+
    call write_netCDF3(ncid, (/ xdimid, ydimid, zdimid/), 's_eh', &
         'kg/(m^3 s^2)', 'x-y strain component of s_pdyn', s_eh )
 
@@ -142,7 +148,7 @@ program compute_pressure_test
         'kg/(m^2 s^2)', 'Effective Buoyancy (sss)',beta)
 
    ! Write pdyn to nc file
-   tmp=pdyn(:,:,1:nz)
+   tmp=pdyn(:,:,1:nz)   ! ??
    call write_netCDF3(ncid, (/ xdimid, ydimid, zdimid/), 'pdyn', &
         'kg/(m s^2)', 'Dynamic Pressure ('//C_pos//')',tmp)
 
