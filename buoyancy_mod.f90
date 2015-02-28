@@ -192,10 +192,8 @@ module buoyancy_mod
       dy = y(2) - y(1)
 
       allocate( in(nx,ny), out(nx/2+1,ny), &
-           ghat(nx/2 +1,ny,nz), &
            tmpa(nx/2+1,ny,nz), tmpb(nx/2+1,ny,nz), & 
-           tmpc(nx/2+1,ny,nz), tmprhs(nx/2+1,ny,nz), & 
-           betahat(nx/2+1,ny,nz) )
+           tmpc(nx/2+1,ny,nz), tmprhs(nx/2+1,ny,nz) )
 
       ! Plans for FFTW
       planf = fftw_plan_dft_r2c_2d(ny,nx,in,out,fftw_measure)
@@ -205,7 +203,7 @@ module buoyancy_mod
       do r = 1,nz
          in = g(:,:,r)
          call fftw_execute_dft_r2c(planf,in,out)
-         ghat(:,:,r) = out
+         tmprhs(:,:,r) = out
       end do
             
       ! Construct and invert tridiagonal matrix for +nabla^2
@@ -239,14 +237,14 @@ module buoyancy_mod
             end if
          end do
       end if
-      tmprhs = ghat
       ! Use - of tmp matrix elements since inverting -nabla^2
+      write(*,*) 'Inverting tri-diagonal ...'
       call invert_tridiagonal(nx/2+1,ny,nz,-tmpa,-tmpb,-tmpc,tmprhs)
-      betahat = tmprhs
+      write(*,*) 'Inversion  complete' 
 
       ! Backwards FT
       do r = 1,nz
-         out = betahat(:,:,r)
+         out = tmprhs(:,:,r)
          call fftw_execute_dft_c2r(planb,out,in)
          beta(:,:,r) = in/(nx*ny)
       end do

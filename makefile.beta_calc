@@ -1,0 +1,36 @@
+INC_NETCDF = ${TACC_NETCDF_INC}
+LIB_NETCDF = ${TACC_NETCDF_LIB}
+LIB_FFTW = /home1/02291/jeevanje/domain/fftw-3.3.3/install/lib
+LIB_HDF = $(TACC_HDF5_LIB)
+FLAGS += -O3 -r8 -ipo -xhost -I${INC_NETCDF}
+# TACC recommendation: Just load netcdf/4.3.2 (do not load hdf5!)
+LDFLAGS = ${FLAGS} -Wl,-rpath,${LIB_NETCDF} -L${LIB_NETCDF}  -L${LIB_FFTW} -lnetcdff -lnetcdf -lfftw3 -lz
+
+F90 = mpif90 -c
+LD = mpif90
+
+src_files := calculus_mod.f90 netcdf_mod.f90 buoyancy_mod.f90 beta_calc.f90
+obj_files := $(addsuffix .o, $(basename $(src_files)))
+mod_files := $(addsuffix .mod,$(basename $(src_files)))
+
+# Program
+beta_calc: $(obj_files)
+	$(LD) -o $@ $(obj_files) ${LDFLAGS}
+
+# Prerequisites for goal
+calculus_mod.o : calculus_mod.f90
+	$(F90) $(FLAGS) calculus_mod.f90
+
+netcdf_mod.o : netcdf_mod.f90
+	$(F90) $(FLAGS) netcdf_mod.f90
+
+buoyancy_mod.o : buoyancy_mod.f90
+	$(F90) $(FLAGS) buoyancy_mod.f90
+
+beta_calc.o : beta_calc.f90 netcdf_mod.o
+	$(F90) $(FLAGS) beta_calc.f90
+
+.PHONY: clean
+clean:
+	-rm $(obj_files)
+	-rm $(mod_files)

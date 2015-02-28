@@ -56,6 +56,4 @@ do k = nm,1,-1
    tmprhs(:,:,k) = tmprhs(:,:,k) - tmpc(:,:,k)*tmprhs(:,:,k+1)
 end do
 
-
-
 end subroutine invert_tridiagonal
